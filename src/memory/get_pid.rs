@@ -1,4 +1,5 @@
 use std::mem::MaybeUninit;
+use crate::byte_to_string::byte_to_string;
 mod windows {
     pub(crate) use windows::Win32::System::Diagnostics::ToolHelp::{
         CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
@@ -31,12 +32,8 @@ pub fn get_pid(process_name: &str) -> Result<process_memory::Pid, process_memory
     }
 
     loop {
-        // Converts the current process's name from bytes to string.
-        let binding = String::from_utf8_lossy(&entry.szExeFile);
-        // Removes all the extra null zeros in the string. Example: "Wow.exe/0/0/0/0/0/0/0/0"
-        let santized_binding = binding.split("\0").next().unwrap();
         // Compare our current process's name with the wanted process's name.
-        if santized_binding == process_name {
+        if byte_to_string(&entry.szExeFile) == process_name {
             // Returns the process id (PID)
             return Ok(entry.th32ProcessID);
         }

@@ -1,5 +1,6 @@
 mod memory;
 use memory::get_pid;
+use memory::byte_to_string;
 use process_memory::*;
 fn main() -> std::io::Result<()> {
     let pid = get_pid("Wow.exe");
@@ -27,13 +28,7 @@ fn main() -> std::io::Result<()> {
             }
         };
     
-        // // Turns Bytes into a String
-        let binding = String::from_utf8_lossy(&string_bytes);
-    
-        // // Removes null 0 bytes from the string.
-        let result_string = binding.split('\0').next().unwrap();
-    
-        println!("Name: {:?}", &result_string);
+        println!("Name: {:?}", byte_to_string(&string_bytes));
     }
     Ok(())
 }

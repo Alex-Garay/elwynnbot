@@ -3,7 +3,7 @@
 ## Introduction
 ElwynnBot is an AI driven automation bot for a popular MMORPG game called World of Warcraft. The game consists of several concurrent and non concurrent goals that include the following down below.
 Through automation, players can attain levels, gold (in game currency), and items allowing players to enjoy the game and skip the parts many don't enjoy.
-#### Level up to reach max level of 70 for The Burning Crusade expansion of the game. Leveling can be done through 4 ways ways.
+#### Level up to reach max level of 80 for The Wrath of the Lich King expansion of the game. Leveling can be done through 4 ways ways.
 - Questing / Missions that upon completion provide item rewards and experience. (high reward, fast)
 - Grinding consists of purely killing the same mob (monster) over and over again. (low reward slow)
 - Dungeons where with 5 other players, you kill monsters and bosses for high experience. (medium reward, slow)
