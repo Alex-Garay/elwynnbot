@@ -1,14 +1,11 @@
 use std::mem::MaybeUninit;
 mod windows {
-    pub(crate) use windows::Win32::{
-        System::Diagnostics::ToolHelp::{
-            CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32,
-            TH32CS_SNAPPROCESS,
-        },
+    pub(crate) use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32, TH32CS_SNAPPROCESS,
     };
 }
 
-pub fn get_pid(process_name: &str) -> process_memory::Pid {
+pub fn get_pid(process_name: &str) -> Result<process_memory::Pid, process_memory::Pid> {
     // PROCESSENTRY32: Describes an entry from a list of the processes residing in the system address space when a snapshot was taken.
     // MaybeUninit::zeroed().assume_init() makes 0 as the default value for all properties.
     // dwSize: The size of the structure, in bytes. Before calling the Process32First function, set this member to sizeof(PROCESSENTRY32). If you do not initialize dwSize, Process32First fails.
@@ -24,13 +21,13 @@ pub fn get_pid(process_name: &str) -> process_memory::Pid {
     let snapshot = unsafe {
         match windows::CreateToolhelp32Snapshot(windows::TH32CS_SNAPPROCESS, 0) {
         Ok(shot) =>  shot,
-        _ => return 0,
+        _ => return Err(0),
         }
     };
 
     // Process32First: Retrieves information about the first process encountered in a system snapshot.
     if unsafe {windows::Process32First(snapshot, &mut entry) == false} {
-        return 0
+        return Err(0)
     }
 
     loop {
@@ -41,11 +38,16 @@ pub fn get_pid(process_name: &str) -> process_memory::Pid {
         // Compare our current process's name with the wanted process's name.
         if santized_binding == process_name {
             // Returns the process id (PID)
-            return entry.th32ProcessID;
+            return Ok(entry.th32ProcessID);
         }
 
         if unsafe { windows::Process32Next(snapshot, &mut entry) == false} {
-            return 0;
+            return Err(0);
         }
     }
 }
+
+/*
+Original: https://github.com/Tommoa/rs-process-memory/blob/master/examples/fastyboy.rs
+Windows Documentation: https://learn.microsoft.com/en-us/windows/win32/api/tlhelp32/
+ */
