@@ -1,3 +1,5 @@
+use ::windows::Win32::Foundation::CloseHandle;
+
 use crate::memory::byte_to_string;
 mod windows {
     pub(crate) use windows::Win32::System::Diagnostics::ToolHelp::{
@@ -33,8 +35,13 @@ pub fn get_process_id_by_name(process_name: &str) -> Option<u32> {
             return Some(process_entry.th32ProcessID)
         }
 
-        if unsafe { windows::Process32Next(snapshot, &mut process_entry) == false} {
-            return None
+        unsafe {
+            // Breaks our loop when we have ran out of processes to check.
+            // Close Handler: When you are finished with the handle, be sure to close it using the CloseHandle function.
+            if windows::Process32Next(snapshot, &mut process_entry) == false {
+                CloseHandle(snapshot);
+                return None
+            }
         }
     }
 }
