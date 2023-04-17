@@ -1,5 +1,5 @@
-mod Bootstapper;
+mod bootstapper;
 fn main() -> std::io::Result<()> {
-    Bootstapper::bootstrap();
+    bootstapper::bootstrap();
     Ok(())
 }
