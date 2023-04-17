@@ -1,5 +1,6 @@
 use std::ffi::CString;
 use std::os::windows::ffi::OsStrExt;
+use std::ffi::c_void;
 use windows::{
     core::{ 
         PSTR,
@@ -18,8 +19,10 @@ use windows::{
         System::{
             Memory::{
                 VirtualAllocEx,
+                VirtualFreeEx,
                 MEM_COMMIT,
-                PAGE_EXECUTE_READWRITE
+                PAGE_EXECUTE_READWRITE,
+                MEM_RELEASE
             },
             Threading::{
                 Sleep,
@@ -28,13 +31,16 @@ use windows::{
                 PROCESS_CREATION_FLAGS,
                 STARTUPINFOA,
                 GetProcessId,
+                CreateRemoteThread,
+                LPTHREAD_START_ROUTINE
             },
             LibraryLoader::{
                 GetModuleHandleW,
                 GetProcAddress
             },
             Diagnostics::Debug::WriteProcessMemory,
-        }
+        },
+        Security::SECURITY_ATTRIBUTES,
     }
 };
 
@@ -134,18 +140,54 @@ pub fn bootstrap() {
     };
 
     let library_name = CString::new("LoadLibraryW").unwrap();
-    let load_library = unsafe {
+    let loader_dll_pointer = unsafe {
         GetProcAddress(kernal32_module_handle.unwrap(), PCSTR(library_name.as_ptr() as _))
     };
 
-    let load_library_function = unsafe {
-        std::mem::transmute::<FARPROC, LoadLibraryFunctionType>(load_library)
-    };
-
-    if let Some(hmm) = load_library {
-        println!("Load Library: Success!");
+    if let Some(_) = loader_dll_pointer {
+        println!("Load Library: Success! ");
     } else {
         println!("Failed to load library!");
+    }
+
+    unsafe {
+        Sleep(500)
+    }
+
+    let thread_handle = unsafe {
+        CreateRemoteThread(
+            process_handle,
+            None,
+            0,
+            std::mem::transmute::<_, LPTHREAD_START_ROUTINE>(loader_dll_pointer),
+            Some(load_path_pointer as *const c_void),
+            0,
+            None
+        )
+    };
+
+    match thread_handle {
+        Ok(thread) => println!("Thread: {:?}", thread),
+        Err(error) => println!("Error: {:?}", error)
+    };
+
+    unsafe {
+        Sleep(500)
+    }
+
+    let disallocate_virtual_free_ex_memory = unsafe {
+        VirtualFreeEx(
+            process_handle,
+            load_path_pointer,
+            0,
+            MEM_RELEASE
+        )
+    };
+
+    if disallocate_virtual_free_ex_memory.as_bool() {
+            println!("Memory Freed successfully");
+        } else {
+            println!("Failed to free memory with error: {:?}", unsafe { windows::Win32::Foundation::GetLastError() });
     }
 
     println!("Bootstrap Success!");
