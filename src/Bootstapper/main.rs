@@ -4,12 +4,16 @@ use windows::{
     core::{ 
         PSTR,
         PCSTR,
-        PWSTR
+        PCWSTR,
+        PWSTR,
+        IntoParam
     },
     Win32::{
         Foundation::{
             CloseHandle,
-            HANDLE
+            HANDLE,
+            HMODULE,
+            FARPROC
         },
         System::{
             Memory::{
@@ -26,12 +30,15 @@ use windows::{
                 GetProcessId,
             },
             LibraryLoader::{
-                GetModuleHandleW
+                GetModuleHandleW,
+                GetProcAddress
             },
             Diagnostics::Debug::WriteProcessMemory,
         }
     }
 };
+
+type LoadLibraryFunctionType = unsafe extern "system" fn(lib: PWSTR) -> HMODULE;
 
 pub fn bootstrap() {
     println!("Bootstrapping...");
@@ -111,11 +118,39 @@ pub fn bootstrap() {
 
     // println!("Current Directory: {:?}\nLoader Path: {:?}", current_directory, loader_path);
     if write_loader_path_result.as_bool() {
-        println!("WriteProcessMemory succeeded");
+        println!("WriteProcessMemory for Loader.dll filepath succeeded");
     } else {
         let error_code = unsafe { windows::imp::GetLastError() };
-        
+
         println!("WriteProcessMemory failed with error code: {}", error_code);
     }
+
+    let kernel32_module: &str = "kernel32.dll";
+
+    let kernal32_module_wide: Vec<u16> = kernel32_module.encode_utf16().chain(Some(0)).collect();
+
+    let kernal32_module_handle = unsafe { 
+        GetModuleHandleW(pwstr_to_pcwstr(PWSTR(kernal32_module_wide.as_ptr() as _)))
+    };
+
+    let library_name = CString::new("LoadLibraryW").unwrap();
+    let load_library = unsafe {
+        GetProcAddress(kernal32_module_handle.unwrap(), PCSTR(library_name.as_ptr() as _))
+    };
+
+    let load_library_function = unsafe {
+        std::mem::transmute::<FARPROC, LoadLibraryFunctionType>(load_library)
+    };
+
+    if let Some(hmm) = load_library {
+        println!("Load Library: Success!");
+    } else {
+        println!("Failed to load library!");
+    }
+
     println!("Bootstrap Success!");
+}
+
+fn pwstr_to_pcwstr(pwstr: PWSTR) -> PCWSTR {
+    unsafe { std::mem::transmute::<PWSTR, PCWSTR>(pwstr) }
 }
