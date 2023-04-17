@@ -2,19 +2,23 @@ use std::ffi::CString;
 use windows::{
     core::{ 
         PSTR,
-        PCSTR
+        PCSTR,
     },
     Win32::{
-        Foundation::CloseHandle,
+        Foundation::{
+            CloseHandle,
+            HANDLE
+        },
         System::Threading::{
             Sleep,
             CreateProcessA,
             PROCESS_INFORMATION,
             PROCESS_CREATION_FLAGS,
-            STARTUPINFOA
+            STARTUPINFOA,
+            GetProcessId,
 }}};
 
-pub fn read_process_memory() {
+pub fn bootstrap() {
     println!("Hello from read_process_memory");
     let application_path: &str = r"O:\Warcraft Development\Vanilla Client\WoW.exe";
     let application_path_ansi: CString = CString::new(application_path).unwrap();
@@ -39,4 +43,13 @@ pub fn read_process_memory() {
         Sleep(1000);
         println!("Sleeping: 1s");
     }
+
+    let process_handle = unsafe {
+        HANDLE(GetProcessId(process_information.hProcess) as isize)
+    };
+
+    let current_directory = std::env::current_dir().unwrap();
+    let loader_path = current_directory.join("Loader.dll");
+    println!("Current Directory: {:?}\nLoader Path: {:?}", current_directory, loader_path);
+    println!("PROCESS HANDLE: {:?}", process_handle);
 }
