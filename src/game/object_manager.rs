@@ -1,4 +1,4 @@
-use tracing::info;
+use tracing::{info, error};
 use detour::RawDetour;
 use std::sync::Once;
 
@@ -10,6 +10,7 @@ pub fn get_instance() -> &'static mut Objects {
       INIT.call_once(|| {
             INSTANCE = Some(Objects::new());
             INSTANCE.as_mut().unwrap().initialize_player_guid();
+            info!("Object Manager Initialized");
         });
         INSTANCE.as_mut().unwrap()
     }
@@ -18,38 +19,40 @@ pub fn get_instance() -> &'static mut Objects {
 pub struct Objects {
     initialized: bool,
     pub player_guid: u64,
-    update_player_guid_hook: fn() -> u64,
+    player_guid_hook: fn() -> u64,
 }
 
 impl Objects {
     fn new() -> Objects {
-        Objects { player_guid: 0, update_player_guid_hook: || 0, initialized: true}
+        Objects { player_guid: 0, player_guid_hook: || 0, initialized: true}
     }
     fn initialize_player_guid(&mut self) {
         unsafe {
             type PlayerGuidFUnctionType = unsafe extern "C" fn() -> u64;
             unsafe extern "C" fn player_guid_hook() -> u64 {
-                let function_pointer: *const PlayerGuidFUnctionType = 0x00468550 as *const PlayerGuidFUnctionType;
+                let function_pointer: *const PlayerGuidFUnctionType = Offsets::PlayerGuid as usize as *const PlayerGuidFUnctionType;
                 (*function_pointer)()
             }
 
             let detour: RawDetour = RawDetour::new(
-                0x00468550 as *const (),
+                Offsets::PlayerGuid as usize as *const (),
                  player_guid_hook as *const ())
                  .unwrap();
             detour.enable().unwrap();
             let original_function: fn() -> u64 = std::mem::transmute(detour.trampoline());
-            info!("Player Guid: {:?}", original_function);
             self.player_guid = original_function();
-            self.update_player_guid_hook = original_function;
+            self.player_guid_hook = original_function;
         }
     }
-    pub fn update_player_guid(&self) {
+    pub fn get_player_guid(&mut self) -> Result<u64, String> {
         if self.initialized {
-            info!("Player Guid: {:?}", self.player_guid);
-            info!("Updated Player Guid: {:?}", (self.update_player_guid_hook)());
+            self.player_guid = (self.player_guid_hook)();
+            Ok(self.player_guid)
         } else {
-            panic!("Object not initialized!");
+            Err(String::from("Object Manager: Not Initialized"))
         }
     }
+}
+enum Offsets {
+    PlayerGuid = 0x00468550,
 }

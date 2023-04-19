@@ -1,5 +1,5 @@
 use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::info;
+use tracing::{ info, error };
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
@@ -9,21 +9,12 @@ mod game;
 
 #[ctor::ctor]
 fn ctor() {
+    info!("Payload Injection: Success!");
     let stream: TcpStream = TcpStream::connect("127.0.0.1:7331").unwrap();
 
     tracing_subscriber::fmt()
         .with_writer(Mutex::new(stream))
         .init();
-
-    info!("Hit the library!");
-    let _counter_thread = thread::spawn(|| {
-        let mut seconds: u32 = 0;
-        loop {
-            info!("Timer: {:?}s", seconds);
-            seconds = seconds + 1;
-            std::thread::sleep(Duration::from_secs(1));
-        }
-    });
 
     let _gui_thread = thread::spawn(|| {
         nwg::init().expect("Failed to init Native Windows GUI");
@@ -31,6 +22,7 @@ fn ctor() {
         let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
         nwg::dispatch_thread_events();
     });
+    game::object_manager::get_instance();
 
 }
 
@@ -49,26 +41,22 @@ pub struct BasicApp {
 
     #[nwg_control(text: "Call Player GUID Function")]
     #[nwg_layout_item(layout: grid, col: 0, row: 1, row_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::say_hello] )]
+    #[nwg_events( OnButtonClick: [BasicApp::call_object_manager] )]
     hello_button: nwg::Button,
 }
 
 impl BasicApp {
-    fn say_hello(&self) {
-        info!("GUI Function Called!");
+    fn call_object_manager(&self) {
         let guid = game::object_manager::get_instance();
-        guid.update_player_guid();
-        // guid.initialize_player_guid();
-        // let _ = thread::spawn(move || {
-        //     loop {
-        //         guid.update_player_guid();
-        //         std::thread::sleep(Duration::from_millis(50));
-        //     }
-        //  });
+        if guid.get_player_guid().unwrap() > 1 {
+            info!("Player is signed in.")
+        } else {
+            error!("Player is not signed in.")
+        }
     }
 
     fn say_goodbye(&self) {
-        info!("GUI: Goodbye");
+        info!("Goodbye");
         nwg::stop_thread_dispatch();
     }
 }

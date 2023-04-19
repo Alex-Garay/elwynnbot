@@ -23,7 +23,7 @@ fn main() -> color_eyre::Result<()> {
         .expect("setting default tracing subscriber failed");
 
     info!("Launching WoW.exe");
-    let mut wow_process = Command::new(r"O:\Warcraft Development\Vanilla Client\WoW.exe")
+    let _wow_process = Command::new(r"O:\Warcraft Development\Vanilla Client\WoW.exe")
         .spawn()
         .expect("Failed to launch WoW.exe");
 
@@ -37,7 +37,7 @@ fn main() -> color_eyre::Result<()> {
     info!("Creating TcpListener");
     let listener: TcpListener = TcpListener::bind("127.0.0.1:7331")?;
 
-    info!("Finding main.dll");
+    info!("Grabbing main.dll");
     let mut current_directory: String = String::from(
         get_current_working_dir()
             .unwrap()
@@ -45,11 +45,10 @@ fn main() -> color_eyre::Result<()> {
             .into_string()
             .unwrap(),
     );
+
     current_directory.push_str(r"\target\i686-pc-windows-msvc\debug\main.dll");
 
-    // info!("Current Directory: {:?}", current_directory);
-
-    info!("Injecting Payload");
+    info!("Injecting main.dll");
     let injected_payload = syringe.inject(current_directory).unwrap();
 
     let mut buf: Vec<u8> = vec![0u8; 1024];
