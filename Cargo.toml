@@ -11,7 +11,7 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [[bin]]
-name = "elena"
+name = "elwynnbot"
 path = "src/main.rs"
 
 [dependencies]

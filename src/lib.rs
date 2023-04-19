@@ -5,15 +5,7 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-use detour::RawDetour;
-
-type GetPlayerGuidFunctionType = unsafe extern "C" fn() -> u64;
-
-unsafe extern "C" fn my_function() -> u64 {
-    let function_pointer: *const GetPlayerGuidFunctionType = 0x00468550 as *const GetPlayerGuidFunctionType;
-
-    (*function_pointer)()
-}
+mod game;
 
 #[ctor::ctor]
 fn ctor() {
@@ -27,9 +19,6 @@ fn ctor() {
     let _counter_thread = thread::spawn(|| {
         let mut seconds: u32 = 0;
         loop {
-            if seconds > 30 {
-                break;
-            }
             info!("Timer: {:?}s", seconds);
             seconds = seconds + 1;
             std::thread::sleep(Duration::from_secs(1));
@@ -67,21 +56,15 @@ pub struct BasicApp {
 impl BasicApp {
     fn say_hello(&self) {
         info!("GUI Function Called!");
-
-        unsafe {
-            let detour =
-                RawDetour::new(0x00468550 as *const (), my_function as *const ()).unwrap();
-
-            info!("Enabling Detour: {:?}", detour);
-            detour.enable().unwrap();
-            info!("Enabled Detour? {:?}", detour);
-            info!("Creating Original Function");
-            let original_function: fn() -> u64 = std::mem::transmute(detour.trampoline());
-            info!("Calling Original Function: {:?}", original_function);
-            let result = original_function();
-            info!("ORIGINAL FUNCTION RETURNED: {:?}", result);
-            detour.disable().unwrap();
-        }
+        let guid = game::object_manager::get_instance();
+        guid.update_player_guid();
+        // guid.initialize_player_guid();
+        // let _ = thread::spawn(move || {
+        //     loop {
+        //         guid.update_player_guid();
+        //         std::thread::sleep(Duration::from_millis(50));
+        //     }
+        //  });
     }
 
     fn say_goodbye(&self) {
@@ -90,21 +73,3 @@ impl BasicApp {
     }
 }
 // DOCUMENTATION FOR GUI: https://github.com/gabdube/native-windows-gui
-
-// let _message_box_thread = thread::spawn(|| {
-//     let message = "DLL Injection Successful";
-//     let caption = "DLL Injection";
-
-//     let message_wide: Vec<u16> = message.encode_utf16().chain(Some(0)).collect();
-//     let caption_wide: Vec<u16> = caption.encode_utf16().chain(Some(0)).collect();
-
-//     unsafe {
-//         info!("MessageBoxW Launched");
-//         MessageBoxW(
-//             None,
-//             PCWSTR::from_raw(message_wide.as_ptr()),
-//             PCWSTR::from_raw(caption_wide.as_ptr()),
-//             MB_OK
-//         );
-//     }
-// });
