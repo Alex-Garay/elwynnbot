@@ -80,7 +80,7 @@ impl Objects {
             unsafe extern "fastcall" fn replacement_function(
                 callback: *const extern "fastcall" fn(i32, u64),
                 filter: i32,
-            ) -> () {
+            ) {
                 let original_function: *const TypeEnumerateVisibleObjects =
                     Offsets::EnumerateVisibleObjects as usize as *const ()
                         as *const TypeEnumerateVisibleObjects;
@@ -110,12 +110,10 @@ impl Objects {
     }
 
     pub fn debug_enumerate_visible_objects_hook(&self) {
-        if let Some(evoh) = self.enumerate_visible_objects_hook {
-            info!("CALLING ENUMERATE VISIBLE HOOK");
+        if let Some(hook) = self.enumerate_visible_objects_hook {
             unsafe {
-                evoh(
-                    callback_enumerate_visible_objects as *const extern "fastcall" fn(i32, u64),
-                    0,
+                hook(
+                    callback_enumerate_visible_objects as *const extern "fastcall" fn(i32, u64), 0
                 )
             };
         }

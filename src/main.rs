@@ -2,7 +2,7 @@ use dll_syringe::{process::OwnedProcess, Syringe};
 use std::process::Command;
 use std::{
     env,
-    io::{self, Read, Write},
+    io::{Read, Write},
     net::TcpListener,
     path::PathBuf,
     vec,
@@ -10,8 +10,6 @@ use std::{
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
-// BUILD: cargo build --target=i686-pc-windows-msvc
-// RUN: .\target\i686-pc-windows-msvc\debug\elenarun.exe
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
 
@@ -38,13 +36,12 @@ fn main() -> color_eyre::Result<()> {
     let listener: TcpListener = TcpListener::bind("127.0.0.1:7331")?;
 
     info!("Grabbing main.dll");
-    let mut current_directory: String = String::from(
+    let mut current_directory: String =
         get_current_working_dir()
             .unwrap()
             .into_os_string()
             .into_string()
-            .unwrap(),
-    );
+            .unwrap();
 
     current_directory.push_str(r"\target\i686-pc-windows-msvc\debug\main.dll");
 
