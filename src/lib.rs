@@ -1,10 +1,9 @@
 use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::{debug, error, info};
+use tracing::{info};
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
-use tracing_subscriber::field;
 
 mod game;
 
@@ -23,7 +22,6 @@ fn ctor() {
         let _app = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
         nwg::dispatch_thread_events();
     });
-    game::object_manager::get_instance();
 }
 
 #[derive(Default, NwgUi)]
@@ -43,26 +41,20 @@ pub struct BasicApp {
 
 impl BasicApp {
     fn call_object_manager(&self) {
-        let mut guid = game::object_manager::get_instance();
+        let guid = game::object_manager::get_instance();
         match guid.get_player_guid() {
-            Ok(response) => info!(%response),
+            Ok(response) => {
+                info!(%response);
+                if response > 0 {
+                    guid.create_enumerate_visible_objects_hook();
+                    loop {
+                        guid.debug_enumerate_visible_objects_hook();
+                        thread::sleep(Duration::from_millis(50));
+                    }
+                }
+            }
             Err(e) => info!(%e),
         }
-        // let mut counter: u32 = 0;
-
-        // thread::spawn(move || {
-        //     while counter < 30 {
-        //         guid.initialize_enumerate_visible_objects_detour();
-        //         counter = counter + 1;
-        //         debug!("Counter: {:?}", counter);
-        //     }
-        // });
-
-        // if guid.get_player_guid().unwrap() > 1 {
-        //     info!("Player is signed in.")
-        // } else {
-        //     error!("Player is not signed in.")
-        // }
     }
 
     fn say_goodbye(&self) {
