@@ -1,5 +1,5 @@
 use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::{info};
+use tracing::info;
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
@@ -41,20 +41,42 @@ pub struct BasicApp {
 
 impl BasicApp {
     fn call_object_manager(&self) {
-        let guid = game::object_manager::get_instance();
-        match guid.get_player_guid() {
-            Ok(response) => {
-                info!(%response);
-                if response > 0 {
-                    guid.create_enumerate_visible_objects_hook();
-                    loop {
-                        guid.debug_enumerate_visible_objects_hook();
-                        thread::sleep(Duration::from_millis(50));
+        thread::spawn(move || {
+            let guid = game::get_hooks_instance();
+            guid.create_player_guid_hook();
+            if let Some(player_guid_hook) = guid.player_guid_hook {
+                if unsafe { player_guid_hook() } > 0 {
+                    unsafe extern "fastcall" fn callback_enumerate_visible_objects(
+                        filter: i32,
+                        guid: u64,
+                    ) {
+                        // TODO
+                        info!("EnumerateVisibleObjects: {:?}, {:?}", filter, guid);
                     }
+                    info!("Player currently online.");
+                    let mut initiated_objects_hook = false;
+                    if initiated_objects_hook == false {
+                        guid.create_enumerate_visible_objects_hook();
+                        initiated_objects_hook = true;
+                    }
+
+                    if let Some(hook) = guid.enumerate_visible_objects_hook {
+                        info!("INSIDE ENUMERATE VISIBLE OBJECTS HOOK: CALLING NOW");
+                        loop {
+                            unsafe {
+                                hook(
+                                    callback_enumerate_visible_objects
+                                        as *const extern "fastcall" fn(i32, u64),
+                                    0,
+                                )
+                            };
+                        }
+                    }
+                } else {
+                    info!("Please currently offline.");
                 }
-            }
-            Err(e) => info!(%e),
-        }
+            };
+        });
     }
 
     fn say_goodbye(&self) {

@@ -36,12 +36,11 @@ fn main() -> color_eyre::Result<()> {
     let listener: TcpListener = TcpListener::bind("127.0.0.1:7331")?;
 
     info!("Grabbing main.dll");
-    let mut current_directory: String =
-        get_current_working_dir()
-            .unwrap()
-            .into_os_string()
-            .into_string()
-            .unwrap();
+    let mut current_directory: String = get_current_working_dir()
+        .unwrap()
+        .into_os_string()
+        .into_string()
+        .unwrap();
 
     current_directory.push_str(r"\target\i686-pc-windows-msvc\debug\main.dll");
 
