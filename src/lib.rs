@@ -1,9 +1,10 @@
 use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::{ info, error };
+use tracing::{error, info, debug};
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
+use tracing_subscriber::field;
 
 mod game;
 
@@ -23,36 +24,45 @@ fn ctor() {
         nwg::dispatch_thread_events();
     });
     game::object_manager::get_instance();
-
 }
 
 #[derive(Default, NwgUi)]
 pub struct BasicApp {
-    #[nwg_control(size: (300, 115), position: (300, 300), title: "Basic example", flags: "WINDOW|VISIBLE")]
+    #[nwg_control(size: (300, 115), position: (300, 300), title: "elwynnbot", flags: "WINDOW|VISIBLE")]
     #[nwg_events( OnWindowClose: [BasicApp::say_goodbye] )]
     window: nwg::Window,
 
     #[nwg_layout(parent: window, spacing: 1)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(text: "Heisenberg", focus: true)]
-    #[nwg_layout_item(layout: grid, row: 0, col: 0)]
-    name_edit: nwg::TextInput,
-
     #[nwg_control(text: "Call Player GUID Function")]
-    #[nwg_layout_item(layout: grid, col: 0, row: 1, row_span: 2)]
+    #[nwg_layout_item(layout: grid, col: 0, row: 0, row_span: 1)]
     #[nwg_events( OnButtonClick: [BasicApp::call_object_manager] )]
     hello_button: nwg::Button,
 }
 
 impl BasicApp {
     fn call_object_manager(&self) {
-        let guid = game::object_manager::get_instance();
-        if guid.get_player_guid().unwrap() > 1 {
-            info!("Player is signed in.")
-        } else {
-            error!("Player is not signed in.")
-        }
+        let mut guid = game::object_manager::get_instance();
+        // match guid.get_player_guid() {
+        //     Ok(response) => info!(%response),
+        //     Err(e) => info!(%e),
+        // }
+        let mut counter: u32 = 0;
+
+        thread::spawn(move || {
+            while counter < 30 {
+                guid.initialize_enumerate_visible_objects_detour();
+                counter = counter + 1;
+                debug!("Counter: {:?}", counter);
+            }
+        });
+
+        // if guid.get_player_guid().unwrap() > 1 {
+        //     info!("Player is signed in.")
+        // } else {
+        //     error!("Player is not signed in.")
+        // }
     }
 
     fn say_goodbye(&self) {

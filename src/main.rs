@@ -2,12 +2,12 @@ use dll_syringe::{process::OwnedProcess, Syringe};
 use std::process::Command;
 use std::{
     env,
-    io::{ self, Read, Write },
-    net::{ TcpListener },
+    io::{self, Read, Write},
+    net::TcpListener,
     path::PathBuf,
     vec,
 };
-use tracing::{ info, Level };
+use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 // BUILD: cargo build --target=i686-pc-windows-msvc
