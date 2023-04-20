@@ -1,5 +1,5 @@
 use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::{error, info, debug};
+use tracing::{debug, error, info};
 extern crate native_windows_derive as nwd;
 extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
@@ -44,19 +44,19 @@ pub struct BasicApp {
 impl BasicApp {
     fn call_object_manager(&self) {
         let mut guid = game::object_manager::get_instance();
-        // match guid.get_player_guid() {
-        //     Ok(response) => info!(%response),
-        //     Err(e) => info!(%e),
-        // }
-        let mut counter: u32 = 0;
+        match guid.get_player_guid() {
+            Ok(response) => info!(%response),
+            Err(e) => info!(%e),
+        }
+        // let mut counter: u32 = 0;
 
-        thread::spawn(move || {
-            while counter < 30 {
-                guid.initialize_enumerate_visible_objects_detour();
-                counter = counter + 1;
-                debug!("Counter: {:?}", counter);
-            }
-        });
+        // thread::spawn(move || {
+        //     while counter < 30 {
+        //         guid.initialize_enumerate_visible_objects_detour();
+        //         counter = counter + 1;
+        //         debug!("Counter: {:?}", counter);
+        //     }
+        // });
 
         // if guid.get_player_guid().unwrap() > 1 {
         //     info!("Player is signed in.")
