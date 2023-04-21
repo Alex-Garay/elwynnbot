@@ -1,10 +1,5 @@
 use tracing::{error, info};
 
+pub struct Objects {}
 
-pub struct Objects {
-
-}
-
-impl Objects {
-
-}
+impl Objects {}
