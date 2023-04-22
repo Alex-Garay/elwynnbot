@@ -30,7 +30,7 @@ pub unsafe extern "fastcall" fn callback_enumerate_visible_objects(filter: i32, 
 pub struct Functions {
     pub player_guid_hook: Option<TypeGetPlayerGuidFunction>,
     pub enumerate_visible_objects_hook: Option<TypeEnumerateVisibleObjects>,
-    pub get_object_pointer_hook: Option<TypeGetObjectPointerFunction>
+    pub get_object_pointer_hook: Option<TypeGetObjectPointerFunction>,
 }
 
 impl Functions {
@@ -38,31 +38,36 @@ impl Functions {
         Functions {
             player_guid_hook: None,
             enumerate_visible_objects_hook: None,
-            get_object_pointer_hook: None
+            get_object_pointer_hook: None,
         }
     }
 
     pub fn create_get_object_pointer_hook(&mut self) {
         type TypeGetObjectPointerFunction = unsafe extern "stdcall" fn(guid: u64) -> usize;
         unsafe extern "stdcall" fn replacement_function(guid: u64) -> usize {
-            let raw_pointer: *const TypeGetObjectPointerFunction = Offsets::GetObjectPointer as usize as *const TypeGetObjectPointerFunction;
+            let raw_pointer: *const TypeGetObjectPointerFunction =
+                Offsets::GetObjectPointer as usize as *const TypeGetObjectPointerFunction;
             (*raw_pointer)(guid)
         }
 
         unsafe {
-            match RawDetour::new(Offsets::GetObjectPointer as usize as *const (), replacement_function as *const ()) {
+            match RawDetour::new(
+                Offsets::GetObjectPointer as usize as *const (),
+                replacement_function as *const (),
+            ) {
                 Ok(detour) => {
                     info!("Successful GetObjectPointer hook creation");
-    
+
                     detour.enable().unwrap();
-    
-                    let original_function: TypeGetObjectPointerFunction = std::mem::transmute(detour.trampoline());
+
+                    let original_function: TypeGetObjectPointerFunction =
+                        std::mem::transmute(detour.trampoline());
 
                     self.get_object_pointer_hook = Some(original_function);
 
                     detour.disable().unwrap();
-                },
-                Err(_) => info!("Failed GetObjectPointer hook creation")
+                }
+                Err(_) => info!("Failed GetObjectPointer hook creation"),
             }
         }
     }
@@ -83,21 +88,21 @@ impl Functions {
                 replacement_function as *const (),
             ) {
                 Ok(detour) => {
-                info!("Successful GetPlayerGuid Hook Creation");
-                // Enables the detour.
-                detour.enable().unwrap();
+                    info!("Successful GetPlayerGuid Hook Creation");
+                    // Enables the detour.
+                    detour.enable().unwrap();
 
-                // Transmutes our detour trampoline into our TypeGetPlayerGuidFunction.
-                let get_player_guid: TypeGetPlayerGuidFunction =
-                    std::mem::transmute(detour.trampoline());
+                    // Transmutes our detour trampoline into our TypeGetPlayerGuidFunction.
+                    let get_player_guid: TypeGetPlayerGuidFunction =
+                        std::mem::transmute(detour.trampoline());
 
-                // Stores the GetPlayerGuid function inside our object so that it can be called later.
-                self.player_guid_hook = Some(get_player_guid);
+                    // Stores the GetPlayerGuid function inside our object so that it can be called later.
+                    self.player_guid_hook = Some(get_player_guid);
 
-                // Disables the detour.
-                detour.disable().unwrap();
-            }
-            _ => error!("Failed GetPlayerGuid Hook Creation"),
+                    // Disables the detour.
+                    detour.disable().unwrap();
+                }
+                _ => error!("Failed GetPlayerGuid Hook Creation"),
             }
         }
     }
@@ -108,12 +113,12 @@ impl Functions {
             filter: i32,
         ) {
             let original_function: *const TypeEnumerateVisibleObjects =
-            Offsets::EnumerateVisibleObjects as usize as *const ()
-            as *const TypeEnumerateVisibleObjects;
-            
+                Offsets::EnumerateVisibleObjects as usize as *const ()
+                    as *const TypeEnumerateVisibleObjects;
+
             (*original_function)(callback as *const extern "fastcall" fn(i32, u64), filter)
         }
-        
+
         unsafe {
             match RawDetour::new(
                 Offsets::EnumerateVisibleObjects as usize as *const (),
@@ -127,12 +132,20 @@ impl Functions {
                     let original_function: TypeEnumerateVisibleObjects =
                         std::mem::transmute(detour.trampoline());
 
-                    detour.disable().unwrap();
-
                     self.enumerate_visible_objects_hook = Some(original_function);
+
+                    detour.disable().unwrap();
                 }
                 _ => info!("Failed EnumerateVisibleObjects Hook Creation"),
             }
+        }
+    }
+
+    pub fn get_player_guid(&self) -> u64 {
+        if let Some(player_guid_hook) = self.player_guid_hook {
+            unsafe { player_guid_hook() }
+        } else {
+            0
         }
     }
 }
