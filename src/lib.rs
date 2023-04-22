@@ -1,10 +1,8 @@
-use std::{net::TcpStream, sync::Mutex, thread, time::Duration};
-use tracing::{ info, Level};
-
 mod game;
+use std::thread;
 
 use druid::widget::{Button, Flex, Label};
-use druid::{AppLauncher, LocalizedString, PlatformError, Widget, WidgetExt, WindowDesc};
+use druid::{AppLauncher, LocalizedString, Widget, WidgetExt, WindowDesc};
 
 #[ctor::ctor]
 fn ctor() {
