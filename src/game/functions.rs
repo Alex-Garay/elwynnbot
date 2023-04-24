@@ -1,19 +1,41 @@
 use crate::game::enums::Offsets;
 use detour::RawDetour;
-use tracing::{error, info};
-
 use std::sync::Once;
+use tracing::{error, info};
 static mut INSTANCE: Option<Functions> = None;
-static INIT: Once = Once::new();
+
+static INIT_HOOKS: Once = Once::new();
 
 pub fn get_hooks_instance() -> &'static mut Functions {
     unsafe {
-        INIT.call_once(|| {
+        INIT_HOOKS.call_once(|| {
             INSTANCE = Some(Functions::new());
             INSTANCE.as_mut().unwrap().create_player_guid_hook();
             info!("Object Manager Initialized");
         });
         INSTANCE.as_mut().unwrap()
+    }
+}
+pub mod my_module {
+    use std::sync::Arc;
+    use std::sync::Once;
+    pub struct GuiData {
+        pub player_guid: u64,
+        pub visible_objects: Arc<Vec<String>>,
+    }
+
+    static mut GUIINSTANCE: Option<GuiData> = None;
+    static INIT_GUI: Once = Once::new();
+    pub fn get_gui_instance() -> &'static mut GuiData {
+        unsafe {
+            INIT_GUI.call_once(|| {
+                GUIINSTANCE = Some(GuiData {
+                    player_guid: 0,
+                    visible_objects: Arc::new(vec!["Hello".to_owned()]),
+                });
+            });
+            GUIINSTANCE.as_mut().unwrap()
+        }
     }
 }
 

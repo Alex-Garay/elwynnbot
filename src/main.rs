@@ -1,7 +1,5 @@
 use dll_syringe::{process::OwnedProcess, Syringe};
-use std::{
-    env, path::PathBuf
-};
+use std::{env, path::PathBuf};
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -32,12 +30,14 @@ fn main() -> color_eyre::Result<()> {
     current_directory.push_str(r"\target\i686-pc-windows-msvc\debug\main.dll");
 
     info!("Injecting main.dll");
-
     match syringe.inject(current_directory) {
-        Ok(_) => info!("Successful Injection"),
-        Err(ERROR) => error!(%ERROR),
+        Ok(_payload) => {
+            info!("Successful Injection");
+        }
+        Err(e) => error!("Error: {:?}", e),
     }
     info!("All Done!");
+    // Hello::run(Settings::default()).unwrap();
     Ok(())
 }
 
