@@ -1,7 +1,11 @@
-use crate::game::enums::Offsets;
+use crate::game::enums::ObjectType;
+use crate::game::enums::{Offsets, OBJECT_TYPE_OFFSET};
 use detour::RawDetour;
 use std::sync::Once;
 use tracing::{error, info};
+use crate::game::get_object_manager_instance;
+use crate::game::WoWObject;
+
 static mut INSTANCE: Option<Functions> = None;
 
 static INIT_HOOKS: Once = Once::new();
@@ -15,28 +19,6 @@ pub fn get_hooks_instance() -> &'static mut Functions {
         INSTANCE.as_mut().unwrap()
     }
 }
-pub mod my_module {
-    use std::sync::Arc;
-    use std::sync::Once;
-    pub struct GuiData {
-        pub player_guid: u64,
-        pub visible_objects: Arc<Vec<String>>,
-    }
-
-    static mut GUIINSTANCE: Option<GuiData> = None;
-    static INIT_GUI: Once = Once::new();
-    pub fn get_gui_instance() -> &'static mut GuiData {
-        unsafe {
-            INIT_GUI.call_once(|| {
-                GUIINSTANCE = Some(GuiData {
-                    player_guid: 0,
-                    visible_objects: Arc::new(vec!["Hello".to_owned()]),
-                });
-            });
-            GUIINSTANCE.as_mut().unwrap()
-        }
-    }
-}
 
 type TypeGetPlayerGuidFunction = unsafe extern "C" fn() -> u64;
 type TypeEnumerateVisibleObjects =
@@ -44,16 +26,42 @@ type TypeEnumerateVisibleObjects =
 
 type TypeGetObjectPointerFunction = unsafe extern "stdcall" fn(guid: u64) -> usize;
 
-pub unsafe extern "fastcall" fn callback_enumerate_visible_objects(filter: i32, guid: u64) {
-    let instance = get_hooks_instance();
-
-    if instance.get_object_pointer_hook.is_none() {
-        instance.create_get_object_pointer_hook();
+pub unsafe extern "fastcall" fn callback_enumerate_visible_objects(_filter: i32, guid: u64) {
+    let instance = get_object_manager_instance();
+    // Crashes if the instance is not created here due to Mutex locking tracing_subscriber.
+    if instance.functions.get_object_pointer_hook.is_none() {
+        instance.functions.create_get_object_pointer_hook();
     } else {
-        let get_object_pointer = instance.get_object_pointer_hook.unwrap();
-        info!("ENUMERATE: {:?}", get_object_pointer(guid));
-    }
+        let get_object_pointer = instance.functions.get_object_pointer_hook.unwrap();
+        let address = get_object_pointer(guid) + OBJECT_TYPE_OFFSET;
+        let byte_object_type = *(address as *const u8);
 
+        let object_type = match byte_object_type {
+        0 => ObjectType::None,
+        1 => ObjectType::Item,
+        2 => ObjectType::Container,
+        3 => ObjectType::Unit,
+        4 => ObjectType::Player,
+        5 => ObjectType::GameObject,
+        6 => ObjectType::DynamicObject,
+        7 => ObjectType::Corpse,
+        _ => ObjectType::None
+        };
+
+        info!("ObjectType: {:?}", object_type);
+        
+        if instance.objects.is_none() {
+            instance.objects = Some(vec![]);
+        }
+
+        let wow_obects = instance.objects.as_mut().unwrap();
+        wow_obects.push(WoWObject{
+            pointer: get_object_pointer(guid),
+            guid,
+            object_type
+        });
+
+    }
 }
 
 pub struct Functions {
