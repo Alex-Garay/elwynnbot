@@ -1,4 +1,6 @@
 use dll_syringe::{process::OwnedProcess, Syringe};
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::{env, path::PathBuf};
 use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -20,6 +22,9 @@ fn main() -> color_eyre::Result<()> {
     info!("Creating Syringe");
     let syringe = Syringe::for_process(target_process);
 
+    info!("Creating TcpListener");
+    let listener: TcpListener = TcpListener::bind("127.0.0.1:7331")?;
+
     info!("Grabbing main.dll");
     let mut current_directory: String = get_current_working_dir()
         .unwrap()
@@ -36,6 +41,17 @@ fn main() -> color_eyre::Result<()> {
         }
         Err(e) => error!("Error: {:?}", e),
     }
+
+    let mut buf: Vec<u8> = vec![0u8; 1024];
+    let mut stdout = std::io::stdout();
+
+    let (mut stream, addr) = listener.accept()?;
+    info!(%addr, "Connection from ElwynnBot: ");
+
+    while let Ok(n) = stream.read(&mut buf[..]) {
+        stdout.write_all(&buf[..n])?;
+    }
+
     info!("All Done!");
     // Hello::run(Settings::default()).unwrap();
     Ok(())

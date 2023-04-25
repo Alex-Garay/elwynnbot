@@ -11,7 +11,6 @@ pub fn get_hooks_instance() -> &'static mut Functions {
         INIT_HOOKS.call_once(|| {
             INSTANCE = Some(Functions::new());
             INSTANCE.as_mut().unwrap().create_player_guid_hook();
-            info!("Object Manager Initialized");
         });
         INSTANCE.as_mut().unwrap()
     }
@@ -46,7 +45,15 @@ type TypeEnumerateVisibleObjects =
 type TypeGetObjectPointerFunction = unsafe extern "stdcall" fn(guid: u64) -> usize;
 
 pub unsafe extern "fastcall" fn callback_enumerate_visible_objects(filter: i32, guid: u64) {
-    info!("ENUMERATE: {:?}", guid);
+    let instance = get_hooks_instance();
+
+    if instance.get_object_pointer_hook.is_none() {
+        instance.create_get_object_pointer_hook();
+    } else {
+        let get_object_pointer = instance.get_object_pointer_hook.unwrap();
+        info!("ENUMERATE: {:?}", get_object_pointer(guid));
+    }
+
 }
 
 pub struct Functions {
