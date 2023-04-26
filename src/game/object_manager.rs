@@ -1,5 +1,6 @@
 use crate::game::callback_enumerate_visible_objects;
 use crate::game::enums::ObjectType;
+use crate::game::enums::WoWObjectVariants;
 use crate::game::{get_hooks_instance, Functions};
 use std::sync::Once;
 use tracing::{error, info};
@@ -16,13 +17,8 @@ pub fn get_object_manager_instance() -> &'static mut ObjectManager<'static> {
     }
 }
 pub struct ObjectManager<'a> {
-    pub objects: Option<Vec<WoWObject>>,
+    pub objects: Option<Vec<WoWObjectVariants>>,
     pub functions: &'a mut Functions,
-}
-pub struct WoWObject {
-    pub pointer: usize,
-    pub guid: u64,
-    pub object_type: ObjectType,
 }
 
 impl ObjectManager<'_> {

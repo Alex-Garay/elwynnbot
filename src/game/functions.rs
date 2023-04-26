@@ -1,11 +1,12 @@
-use crate::game::enums::ObjectType;
-use crate::game::enums::{Offsets, OBJECT_TYPE_OFFSET};
+use crate::game::enums::WoWObjectVariants;
+use crate::game::enums::{ObjectType, Offsets};
+use crate::game::enums::{
+    WoWContainer, WoWCorpse, WoWDynamicObject, WoWGameObject, WoWItem, WoWNone, WoWPlayer, WoWUnit,
+};
+use crate::game::get_object_manager_instance;
 use detour::RawDetour;
 use std::sync::Once;
 use tracing::{error, info};
-use crate::game::get_object_manager_instance;
-use crate::game::WoWObject;
-
 static mut INSTANCE: Option<Functions> = None;
 
 static INIT_HOOKS: Once = Once::new();
@@ -33,34 +34,71 @@ pub unsafe extern "fastcall" fn callback_enumerate_visible_objects(_filter: i32,
         instance.functions.create_get_object_pointer_hook();
     } else {
         let get_object_pointer = instance.functions.get_object_pointer_hook.unwrap();
-        let address = get_object_pointer(guid) + OBJECT_TYPE_OFFSET;
-        let byte_object_type = *(address as *const u8);
+        let address = get_object_pointer(guid) + Offsets::ObjectType as usize;
+         let byte_object_type = unsafe { core::ptr::read_volatile(address as *const u8)};
 
         let object_type = match byte_object_type {
-        0 => ObjectType::None,
-        1 => ObjectType::Item,
-        2 => ObjectType::Container,
-        3 => ObjectType::Unit,
-        4 => ObjectType::Player,
-        5 => ObjectType::GameObject,
-        6 => ObjectType::DynamicObject,
-        7 => ObjectType::Corpse,
-        _ => ObjectType::None
+            0 => &ObjectType::None,
+            1 => &ObjectType::Item,
+            2 => &ObjectType::Container,
+            3 => &ObjectType::Unit,
+            4 => &ObjectType::Player,
+            5 => &ObjectType::GameObject,
+            6 => &ObjectType::DynamicObject,
+            7 => &ObjectType::Corpse,
+            _ => &ObjectType::None,
         };
 
-        info!("ObjectType: {:?}", object_type);
-        
         if instance.objects.is_none() {
             instance.objects = Some(vec![]);
         }
 
-        let wow_obects = instance.objects.as_mut().unwrap();
-        wow_obects.push(WoWObject{
-            pointer: get_object_pointer(guid),
-            guid,
-            object_type
-        });
+        let objects_vector = instance.objects.as_mut().unwrap();
 
+        let pushed_object_type_data = match object_type {
+            ObjectType::None => WoWObjectVariants::WoWNone(WoWNone {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::Item => WoWObjectVariants::WoWItem(WoWItem {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::Container => WoWObjectVariants::WoWContainer(WoWContainer {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::Unit => WoWObjectVariants::WoWUnit(WoWUnit {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::Player => WoWObjectVariants::WoWPlayer(WoWPlayer {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::GameObject => WoWObjectVariants::WoWGameObject(WoWGameObject {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::DynamicObject => WoWObjectVariants::WoWDynamicObject(WoWDynamicObject {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+            ObjectType::Corpse => WoWObjectVariants::WoWCorpse(WoWCorpse {
+                pointer: get_object_pointer(guid),
+                guid,
+                object_type: object_type.clone(),
+            }),
+        };
+        
+        objects_vector.push(pushed_object_type_data);
     }
 }
 

@@ -1,6 +1,5 @@
 mod object_manager;
 pub use object_manager::get_object_manager_instance;
-pub use object_manager::WoWObject;
 
 mod functions;
 pub use functions::callback_enumerate_visible_objects;
